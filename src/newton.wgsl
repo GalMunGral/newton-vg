@@ -176,25 +176,15 @@ fn minimize(a: f32, b: f32, c: f32, d: f32, e: f32, f: f32, g: f32) -> f32 {
   return res;
 }
 
-struct VSInput {
-  @location(0) position: vec4f,
-};
-
-struct VSOutput {
-  @builtin(position) position: vec4f,
-};
-
-@vertex
-fn vsMain(in: VSInput) -> VSOutput {
-  var out: VSOutput;
-  out.position = in.position;
-  return out;
-}
-
 @group(0) @binding(0) var<storage> curve: array<vec4f>;
 
+@vertex
+fn vsMain(@location(0) position: vec4f) -> @builtin(position) vec4f {
+  return position;
+}
+
 @fragment
-fn fsMain(v: VSOutput) -> @location(0) vec4f {
+fn fsMain(@builtin(position) pos: vec4f) -> @location(0) vec4f {
   var color = vec4f(0, 0, 0, 0);
   var i: u32 = 0;
   while i < arrayLength(&curve) {
@@ -214,8 +204,8 @@ fn fsMain(v: VSOutput) -> @location(0) vec4f {
         let x = curve[i + 2 * j];
         let y = curve[i + 2 * j + 1];
         crossings += count_crossings(
-          x.x, x.y, x.z, x.w - v.position.x,
-          y.x, y.y, y.z, y.w - (v.position.y + 1e-4)
+          x.x, x.y, x.z, x.w - pos.x,
+          y.x, y.y, y.z, y.w - (pos.y + 1e-4)
         );
       }
       if crossings % 2 == 1 {
@@ -225,9 +215,9 @@ fn fsMain(v: VSOutput) -> @location(0) vec4f {
     if stroke.a > 0 && half_width > 0 {
       for (var j: u32 = 0; j < n; j++) {
         var x = curve[i + 2 * j];
-        x.w -= v.position.x;
+        x.w -= pos.x;
         var y = curve[i + 2 * j + 1] ;
-        y.w -= v.position.y + 1e-4;
+        y.w -= pos.y + 1e-4;
         let d = minimize(
           x.x * x.x + y.x * y.x,
           2 * x.x * x.y + 2 * y.x * y.y,
