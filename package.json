@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "esbuild src/index.ts --loader:.wgsl=text --bundle --outdir=dist --watch --serve --serve-fallback=index.html",
-    "build": "esbuild src/index.ts --loader:.wgsl=text --bundle --outdir=dist"
+    "build": "esbuild src/index.ts --loader:.wgsl=text --bundle --outdir=dist && cp index.html dist"
   },
   "author": "",
   "license": "ISC",
