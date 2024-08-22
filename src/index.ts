@@ -1,5 +1,5 @@
 import { parseColor, parseSvgPath, toPoly } from "./svg";
-import shaderSrc from "./render.wgsl";
+import shaderSrc from "./solver.wgsl";
 import { createBuffer } from "./utils";
 import tiger from "./Ghostscript_Tiger.svg";
 
@@ -8,7 +8,6 @@ async function main() {
   const scene: number[] = [];
   tigerSvg.children[0].children[0].querySelectorAll("g").forEach((g) => {
     const pathEl = g.children[0];
-    // if (pathEl.id !== "path152") return;
     const segments = toPoly(pathEl.getAttribute("d")!);
 
     const fill = g.getAttribute("fill");
@@ -131,10 +130,6 @@ async function main() {
     passEncoder.drawIndexed(indices.length);
     passEncoder.end();
     device.queue.submit([commandEncoder.finish()]);
-
-    storageBuffer.destroy();
-
-    // requestAnimationFrame(render);
   }
   requestAnimationFrame(render);
 }

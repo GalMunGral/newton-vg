@@ -9,13 +9,13 @@ fn cubic(p: vec4f, t: f32) -> f32 {
 }
 
 fn solve_quadratic(p: vec3f) -> vec2f {
-  let D = p.y * p.y - 4 * p.x * p.z;
-  if D < 0 {
+  let d = p.y * p.y - 4 * p.x * p.z;
+  if d < 0 {
     return vec2f(0, 0);
   }
   var res = vec2f(
-    clamp((-p.y - sqrt(D)) / (2 * p.x), 0, 1),
-    clamp((-p.y + sqrt(D)) / (2 * p.x), 0, 1),
+    clamp((-p.y - sqrt(d)) / (2 * p.x), 0, 1),
+    clamp((-p.y + sqrt(d)) / (2 * p.x), 0, 1),
   );
   if p.x < 0 {
     res = res.yx;
@@ -57,11 +57,11 @@ fn count_monotonic(x: vec4f, y: vec4f, t1: f32, t2: f32) -> i32 {
 }
 
 fn count_crossings(x: vec4f, y: vec4f) -> i32 {
-  let C = solve_quadratic(y.xyz * vec3f(3, 2, 1));
+  let c = solve_quadratic(y.xyz * vec3f(3, 2, 1));
   return (
-    count_monotonic(x, y, 0, C.x) +
-    count_monotonic(x, y, C.x, C.y) +
-    count_monotonic(x, y, C.y, 1)
+    count_monotonic(x, y, 0, c.x) +
+    count_monotonic(x, y, c.x, c.y) +
+    count_monotonic(x, y, c.y, 1)
   );
 }
 

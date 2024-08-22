@@ -331,16 +331,7 @@ export function toPoly(d: string): number[] {
       }
       case "LINE_TO": {
         const p = transform(cmd.x, cmd.y);
-        res.push(
-          0,
-          0,
-          p[0] - q[0],
-          q[0], // x
-          0,
-          0,
-          p[1] - q[1],
-          q[1] // y
-        );
+        res.push(0, 0, p[0] - q[0], q[0], 0, 0, p[1] - q[1], q[1]);
         q = p;
         break;
       }
@@ -352,36 +343,17 @@ export function toPoly(d: string): number[] {
           -q[0] + 3 * c1[0] - 3 * c2[0] + p[0],
           3 * q[0] - 6 * c1[0] + 3 * c2[0],
           -3 * q[0] + 3 * c1[0],
-          q[0], // x
+          q[0],
           -q[1] + 3 * c1[1] - 3 * c2[1] + p[1],
           3 * q[1] - 6 * c1[1] + 3 * c2[1],
           -3 * q[1] + 3 * c1[1],
-          q[1] // y
+          q[1]
         );
-        // res.push(
-        //   0,
-        //   0,
-        //   p[0] - q[0],
-        //   q[0], // x
-        //   0,
-        //   0,
-        //   p[1] - q[1],
-        //   q[1] // y
-        // );
         q = p;
         break;
       }
       case "CLOSE_PATH": {
-        res.push(
-          0,
-          0,
-          start[0] - q[0],
-          q[0], // x
-          0,
-          0,
-          start[1] - q[1],
-          q[1] // y
-        );
+        res.push(0, 0, start[0] - q[0], q[0], 0, 0, start[1] - q[1], q[1]);
         break;
       }
     }
