@@ -4,15 +4,11 @@ import { createBuffer } from "./utils";
 import tiger from "./Ghostscript_Tiger.svg";
 
 async function main() {
-  const tigerSvg = new DOMParser().parseFromString(
-    tiger,
-    // await (await fetch("./Ghostscript_Tiger.svg")).text(),
-    "text/xml"
-  );
+  const tigerSvg = new DOMParser().parseFromString(tiger, "text/xml");
   const scene: number[] = [];
   tigerSvg.children[0].children[0].querySelectorAll("g").forEach((g) => {
     const pathEl = g.children[0];
-    // if (pathEl.id !== "path388") return;
+    // if (pathEl.id !== "path152") return;
     const segments = toPoly(pathEl.getAttribute("d")!);
 
     const fill = g.getAttribute("fill");
@@ -28,43 +24,32 @@ async function main() {
   canvas.width = size;
   canvas.height = size;
   document.body.append(canvas);
-  // const ctx = canvas.getContext("2d")!;
-  // const imageData = new ImageData(size, size);
 
-  // for (let y = 0; y < size; ++y) {
-  //   console.log("y", y);
-  //   for (let x = 0; x < size; ++x) {
-  //     const [r, g, b, a] = getColor(scene, x, y + Math.random() * 1e-4);
-  //     imageData.data[(y * size + x) * 4] = r;
-  //     imageData.data[(y * size + x) * 4 + 1] = g;
-  //     imageData.data[(y * size + x) * 4 + 2] = b;
-  //     imageData.data[(y * size + x) * 4 + 3] = a;
-  //   }
-  //   ctx.putImageData(imageData, 0, 0);
-  //   await new Promise((resolve) => {
-  //     setTimeout(resolve);
-  //   });
-  // }
+  const context: GPUCanvasContext = canvas.getContext("webgpu")!;
 
   const adapter = (await navigator.gpu.requestAdapter())!;
   const device = (await adapter.requestDevice())!;
 
-  const context: GPUCanvasContext = canvas.getContext("webgpu")!;
-
   const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
-  context.configure({ device, format: presentationFormat });
+  context.configure({
+    device,
+    format: presentationFormat,
+    alphaMode: "premultiplied",
+  });
+
+  const sampleCount = 4;
 
   const renderTarget = device.createTexture({
     size: [canvas.width, canvas.height],
     format: presentationFormat,
-    sampleCount: 4,
+    sampleCount,
     usage: GPUTextureUsage.RENDER_ATTACHMENT,
   });
 
   const depthTexture = device.createTexture({
     size: [canvas.width, canvas.height],
     format: "depth24plus",
-    sampleCount: 4,
+    sampleCount,
     usage: GPUTextureUsage.RENDER_ATTACHMENT,
   });
 
@@ -90,12 +75,12 @@ async function main() {
       cullMode: "back",
     },
     depthStencil: {
-      depthWriteEnabled: false,
-      depthCompare: "always",
+      depthWriteEnabled: true,
+      depthCompare: "less",
       format: "depth24plus",
     },
     multisample: {
-      count: 4,
+      count: sampleCount,
     },
   });
 
@@ -128,14 +113,14 @@ async function main() {
           view: renderTarget.createView(),
           resolveTarget: context.getCurrentTexture().createView(),
           clearValue: { r: 0, g: 0, b: 0, a: 0 },
-          loadOp: "load",
+          loadOp: "clear",
           storeOp: "store",
         },
       ],
       depthStencilAttachment: {
         view: depthTexture.createView(),
         depthClearValue: 1,
-        depthLoadOp: "load",
+        depthLoadOp: "clear",
         depthStoreOp: "store",
       },
     });

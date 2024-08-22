@@ -37,7 +37,7 @@ fn solve_linear(p: vec2f) -> f32 {
 fn solve_quadratic(p: vec3f) -> vec2f {
   let D = p.y * p.y - 4 * p.x * p.z;
   if D < 0 {
-    return vec2f(-1, -1);
+    return vec2f(0, 0);
   }
   var res = vec2f(
     clamp((-p.y - sqrt(D)) / (2 * p.x), 0, 1),
@@ -112,7 +112,7 @@ fn count_crossings(x: vec4f, y: vec4f) -> i32 {
 
 @fragment
 fn fsMain(v: VSOutput) -> @location(0) vec4f {
-  var color = vec4f(0);
+  var color = vec4f(0, 0, 0, 0);
   var i: u32 = 0;
   while i < arrayLength(&curve) {
     let fill = curve[i];
