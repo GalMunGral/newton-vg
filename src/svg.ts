@@ -40,8 +40,57 @@ export type PathConfig = {
   paths: Array<SvgPath>;
 };
 
+type InputStream = {
+  buf: string;
+  i: number;
+};
+
+function space(s: InputStream) {
+  if (s.i >= s.buf.length) return false;
+  while (s.i < s.buf.length && /\s/.test(s.buf[s.i])) ++s.i;
+  return true;
+}
+
+function separator(s: InputStream): boolean {
+  space(s);
+  if (
+    s.i < s.buf.length - 1 &&
+    /[\s,]/.test(s.buf[s.i]) &&
+    /[^\s,]/.test(s.buf[s.i + 1])
+  ) {
+    ++s.i;
+  }
+  space(s);
+  return true;
+}
+
+function number(s: InputStream): number {
+  const reg = /[+-]?((0|[1-9]\d*)?\.\d*[1-9]|(0|[1-9]\d*))/y;
+  reg.lastIndex = s.i;
+  const match = reg.exec(s.buf);
+  if (!match)
+    throw {
+      error: "failed to parse number",
+      location: s.buf.slice(s.i),
+    };
+  s.i += match[0].length;
+  separator(s);
+  return Number(match[0]);
+}
+
+function token(s: InputStream, reg: RegExp): void {
+  reg.lastIndex = s.i;
+  const match = reg.exec(s.buf);
+  if (!match)
+    throw {
+      error: "failed to parse token",
+      location: s.buf.slice(s.i),
+    };
+  s.i += match[0].length;
+  space(s);
+}
+
 export function parseSvgPath(d: string): Array<Command> {
-  let i = 0;
   let cx: number = 0,
     cy: number = 0,
     x: number = 0,
@@ -51,18 +100,26 @@ export function parseSvgPath(d: string): Array<Command> {
 
   const res = Array<Command>();
 
-  space();
-  while (i < d.length) {
-    let node = parseCommands();
+  const s: InputStream = {
+    buf: d,
+    i: 0,
+  };
 
-    if (!node.length) throw [res, d.slice(i), i];
+  space(s);
+  while (s.i < s.buf.length) {
+    let node = parseCommands();
+    if (!node.length)
+      throw {
+        res,
+        location: s.buf.slice(s.i),
+      };
     res.push(...node);
-    space();
+    space(s);
   }
 
   function command() {
-    let res = d[i++];
-    separator();
+    let res = s.buf[s.i++];
+    separator(s);
     return res;
   }
 
@@ -103,49 +160,19 @@ export function parseSvgPath(d: string): Array<Command> {
     return [];
   }
 
-  function space() {
-    if (i >= d.length) return false;
-    while (i < d.length && /\s/.test(d[i])) ++i;
-    return true;
-  }
-
-  function separator(): boolean {
-    space();
-    if (i < d.length - 1 && /[\s,]/.test(d[i]) && /[^\s,]/.test(d[i + 1])) {
-      ++i;
-    }
-    space();
-    return true;
-  }
-
-  function number(): number {
-    const reg = /[+-]?((0|[1-9]\d*)?\.\d*[1-9]|(0|[1-9]\d*))/y;
-    reg.lastIndex = i;
-    const match = reg.exec(d);
-    if (!match)
-      throw {
-        error: "failed to parse number",
-        location: d.slice(i),
-        res,
-      };
-    i += match[0].length;
-    separator();
-    return Number(match[0]);
-  }
-
   function moveTo(): Array<Command> {
     const res: Array<Command> = [];
     let first = true;
     do {
-      x = number();
-      y = number();
+      x = number(s);
+      y = number(s);
       if (first) {
         first = false;
         res.push({ type: "MOVE_TO", x, y });
       } else {
         res.push({ type: "LINE_TO", x, y });
       }
-    } while (!/[a-zA-Z]/.test(d[i]));
+    } while (!/[a-zA-Z]/.test(s.buf[s.i]));
     isPrevCubic = false;
     return res;
   }
@@ -154,15 +181,15 @@ export function parseSvgPath(d: string): Array<Command> {
     const res: Array<Command> = [];
     let first = true;
     do {
-      x += number();
-      y += number();
+      x += number(s);
+      y += number(s);
       if (first) {
         first = false;
         res.push({ type: "MOVE_TO", x, y });
       } else {
         res.push({ type: "LINE_TO", x, y });
       }
-    } while (!/[a-zA-Z]/.test(d[i]));
+    } while (!/[a-zA-Z]/.test(s.buf[s.i]));
     isPrevCubic = false;
     return res;
   }
@@ -170,10 +197,10 @@ export function parseSvgPath(d: string): Array<Command> {
   function lineTo(): Array<Command> {
     const res: Array<Command> = [];
     do {
-      x = number();
-      y = number();
+      x = number(s);
+      y = number(s);
       res.push({ type: "LINE_TO", x, y });
-    } while (!/[a-zA-Z]/.test(d[i]));
+    } while (!/[a-zA-Z]/.test(s.buf[s.i]));
     isPrevCubic = false;
     return res;
   }
@@ -181,10 +208,10 @@ export function parseSvgPath(d: string): Array<Command> {
   function lineToDelta(): Array<Command> {
     const res: Array<Command> = [];
     do {
-      x += number();
-      y += number();
+      x += number(s);
+      y += number(s);
       res.push({ type: "LINE_TO", x, y });
-    } while (!/[a-zA-Z]/.test(d[i]));
+    } while (!/[a-zA-Z]/.test(s.buf[s.i]));
     isPrevCubic = false;
     return res;
   }
@@ -192,9 +219,9 @@ export function parseSvgPath(d: string): Array<Command> {
   function hLineTo(): Array<Command> {
     const res: Array<Command> = [];
     do {
-      x = number();
+      x = number(s);
       res.push({ type: "LINE_TO", x, y });
-    } while (!/[a-zA-Z]/.test(d[i]));
+    } while (!/[a-zA-Z]/.test(s.buf[s.i]));
     isPrevCubic = false;
     return res;
   }
@@ -202,9 +229,9 @@ export function parseSvgPath(d: string): Array<Command> {
   function hLineToDelta(): Array<Command> {
     const res: Array<Command> = [];
     do {
-      x += number();
+      x += number(s);
       res.push({ type: "LINE_TO", x, y });
-    } while (!/[a-zA-Z]/.test(d[i]));
+    } while (!/[a-zA-Z]/.test(s.buf[s.i]));
     isPrevCubic = false;
     return res;
   }
@@ -212,9 +239,9 @@ export function parseSvgPath(d: string): Array<Command> {
   function vLineTo(): Array<Command> {
     const res: Array<Command> = [];
     do {
-      y = number();
+      y = number(s);
       res.push({ type: "LINE_TO", x, y });
-    } while (!/[a-zA-Z]/.test(d[i]));
+    } while (!/[a-zA-Z]/.test(s.buf[s.i]));
     isPrevCubic = false;
     return res;
   }
@@ -222,9 +249,9 @@ export function parseSvgPath(d: string): Array<Command> {
   function vLineToDelta(): Array<Command> {
     const res: Array<Command> = [];
     do {
-      y += number();
+      y += number(s);
       res.push({ type: "LINE_TO", x, y });
-    } while (!/[a-zA-Z]/.test(d[i]));
+    } while (!/[a-zA-Z]/.test(s.buf[s.i]));
     isPrevCubic = false;
     return res;
   }
@@ -232,14 +259,14 @@ export function parseSvgPath(d: string): Array<Command> {
   function cubicBezier(): Array<Command> {
     const res: Array<Command> = [];
     do {
-      let cx1 = number();
-      let cy1 = number();
-      let cx2 = (cx = number());
-      let cy2 = (cy = number());
-      x = number();
-      y = number();
+      let cx1 = number(s);
+      let cy1 = number(s);
+      let cx2 = (cx = number(s));
+      let cy2 = (cy = number(s));
+      x = number(s);
+      y = number(s);
       res.push({ type: "CUBIC_BEZIER", cx1, cy1, cx2, cy2, x, y });
-    } while (!/[a-zA-Z]/.test(d[i]));
+    } while (!/[a-zA-Z]/.test(s.buf[s.i]));
     isPrevCubic = true;
     return res;
   }
@@ -247,14 +274,14 @@ export function parseSvgPath(d: string): Array<Command> {
   function cubicBezierDelta(): Array<Command> {
     const res: Array<Command> = [];
     do {
-      let cx1 = x + number();
-      let cy1 = y + number();
-      let cx2 = (cx = x + number());
-      let cy2 = (cy = y + number());
-      x += number();
-      y += number();
+      let cx1 = x + number(s);
+      let cy1 = y + number(s);
+      let cx2 = (cx = x + number(s));
+      let cy2 = (cy = y + number(s));
+      x += number(s);
+      y += number(s);
       res.push({ type: "CUBIC_BEZIER", cx1, cy1, cx2, cy2, x, y });
-    } while (!/[a-zA-Z]/.test(d[i]));
+    } while (!/[a-zA-Z]/.test(s.buf[s.i]));
     isPrevCubic = true;
     return res;
   }
@@ -264,12 +291,12 @@ export function parseSvgPath(d: string): Array<Command> {
     do {
       let cx1 = isPrevCubic ? 2 * x - cx : x;
       let cy1 = isPrevCubic ? 2 * y - cy : y;
-      let cx2 = (cx = number());
-      let cy2 = (cy = number());
-      x = number();
-      y = number();
+      let cx2 = (cx = number(s));
+      let cy2 = (cy = number(s));
+      x = number(s);
+      y = number(s);
       res.push({ type: "CUBIC_BEZIER", cx1, cy1, cx2, cy2, x, y });
-    } while (!/[a-zA-Z]/.test(d[i]));
+    } while (!/[a-zA-Z]/.test(s.buf[s.i]));
     isPrevCubic = true;
     return res;
   }
@@ -279,12 +306,12 @@ export function parseSvgPath(d: string): Array<Command> {
     do {
       let cx1 = isPrevCubic ? 2 * x - cx : x;
       let cy1 = isPrevCubic ? 2 * y - cy : y;
-      let cx2 = (cx = x + number());
-      let cy2 = (cy = y + number());
-      x += number();
-      y += number();
+      let cx2 = (cx = x + number(s));
+      let cy2 = (cy = y + number(s));
+      x += number(s);
+      y += number(s);
       res.push({ type: "CUBIC_BEZIER", cx1, cy1, cx2, cy2, x, y });
-    } while (!/[a-zA-Z]/.test(d[i]));
+    } while (!/[a-zA-Z]/.test(s.buf[s.i]));
     isPrevCubic = true;
     return res;
   }
@@ -298,6 +325,7 @@ export function parseSvgPath(d: string): Array<Command> {
 }
 
 export function parseColor(s: string): [number, number, number, number] {
+  if (s === "none") return [0, 0, 0, 0];
   if (s.length == 7) {
     const r = parseInt(s.slice(1, 3), 16) / 255;
     const g = parseInt(s.slice(3, 5), 16) / 255;
@@ -311,35 +339,113 @@ export function parseColor(s: string): [number, number, number, number] {
   }
 }
 
-export function toPoly(d: string): number[] {
-  const path = parseSvgPath(d);
+function matmul(a: number[][], b: number[][]) {
+  const c = Array(3)
+    .fill(0)
+    .map(() => Array(3).fill(0));
+  for (let i = 0; i < 3; ++i) {
+    for (let j = 0; j < 3; ++j) {
+      for (let k = 0; k < 3; ++k) {
+        c[i][j] += a[i][k] * b[k][j];
+      }
+    }
+  }
+  return c;
+}
 
-  const res: number[] = [];
+function apply(m: number[][], x: number, y: number): number[] {
+  const u = [x, y, 1];
+  const v = Array(3).fill(0);
+  for (let i = 0; i < 3; ++i) {
+    for (let j = 0; j < 3; ++j) {
+      v[i] += m[i][j] * u[j];
+    }
+  }
+  return [v[0] / v[2], v[1] / v[2]];
+}
 
+const identity = [
+  [1, 0, 0],
+  [0, 1, 0],
+  [0, 0, 1],
+];
+
+function parseMatrix(t: string): number[][] {
+  const s: InputStream = { buf: t, i: 0 };
+  token(s, /matrix/);
+  token(s, /\(/);
+  const a = number(s);
+  const b = number(s);
+  const c = number(s);
+  const d = number(s);
+  const e = number(s);
+  const f = number(s);
+  token(s, /\)/);
+  return [
+    [a, c, e],
+    [b, d, f],
+    [0, 0, 1],
+  ];
+}
+
+export function encode(
+  node: SVGElement,
+  buffer: number[],
+  transform: number[][] = identity,
+  fill: number[] = [0, 0, 0, 0]
+) {
+  const s = node.getAttribute("fill");
+  if (s) fill = parseColor(s);
+
+  switch (node.tagName) {
+    case "g": {
+      const t = node.getAttribute("transform");
+      if (t) transform = matmul(transform, parseMatrix(t));
+      for (let n of node.children) {
+        encode(n as SVGElement, buffer, transform, fill);
+      }
+    }
+    case "path": {
+      const d = node.getAttribute("d");
+      if (d) {
+        const commands = parseSvgPath(d);
+        encodePathCommand(commands, buffer, transform, fill);
+      }
+    }
+  }
+}
+
+export function encodePathCommand(
+  commands: Command[],
+  buffer: number[],
+  transform: number[][],
+  fill: number[]
+) {
   let start: number[] = [0, 0];
   let q: number[] = [0, 0];
 
-  function transform(x: number, y: number) {
-    return [1.5 * (x + 200), 1.5 * (y + 200)];
-  }
+  if (fill[3] === 0) return;
 
-  for (const cmd of path) {
+  buffer.push(...fill);
+  buffer.push(commands.filter((c) => c.type !== "MOVE_TO").length, 0, 0, 0);
+
+  for (const cmd of commands) {
     switch (cmd.type) {
       case "MOVE_TO": {
-        start = q = transform(cmd.x, cmd.y);
+        start = q = apply(transform, cmd.x, cmd.y);
         break;
       }
       case "LINE_TO": {
-        const p = transform(cmd.x, cmd.y);
-        res.push(0, 0, p[0] - q[0], q[0], 0, 0, p[1] - q[1], q[1]);
+        const p = apply(transform, cmd.x, cmd.y);
+        buffer.push(0, 0, p[0] - q[0], q[0], 0, 0, p[1] - q[1], q[1]);
         q = p;
         break;
       }
       case "CUBIC_BEZIER": {
-        const c1 = transform(cmd.cx1, cmd.cy1);
-        const c2 = transform(cmd.cx2, cmd.cy2);
-        const p = transform(cmd.x, cmd.y);
-        res.push(
+        const c1 = apply(transform, cmd.cx1, cmd.cy1);
+        const c2 = apply(transform, cmd.cx2, cmd.cy2);
+        const p = apply(transform, cmd.x, cmd.y);
+        buffer.push(
           -q[0] + 3 * c1[0] - 3 * c2[0] + p[0],
           3 * q[0] - 6 * c1[0] + 3 * c2[0],
           -3 * q[0] + 3 * c1[0],
@@ -353,11 +459,11 @@ export function toPoly(d: string): number[] {
         break;
       }
       case "CLOSE_PATH": {
-        res.push(0, 0, start[0] - q[0], q[0], 0, 0, start[1] - q[1], q[1]);
+        buffer.push(0, 0, start[0] - q[0], q[0], 0, 0, start[1] - q[1], q[1]);
         break;
       }
+      default:
+        console.log("not handled", cmd);
     }
   }
-
-  return res;
 }

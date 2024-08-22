@@ -1,23 +1,18 @@
-import { parseColor, parseSvgPath, toPoly } from "./svg";
+import { encode } from "./svg";
 import shaderSrc from "./solver.wgsl";
 import { createBuffer } from "./utils";
 import tiger from "./Ghostscript_Tiger.svg";
 
+const size = 900;
+
 async function main() {
   const tigerSvg = new DOMParser().parseFromString(tiger, "text/xml");
-  const scene: number[] = [];
-  tigerSvg.children[0].children[0].querySelectorAll("g").forEach((g) => {
-    const pathEl = g.children[0];
-    const segments = toPoly(pathEl.getAttribute("d")!);
+  const sceneBuffer: number[] = [];
 
-    const fill = g.getAttribute("fill");
-    if (fill) {
-      const color = parseColor(fill);
-      scene.push(...color, segments.length / 8, 0, 0, 0, ...segments);
-    }
-  });
-
-  const size = 900;
+  encode(
+    tigerSvg.firstElementChild?.firstElementChild as SVGElement,
+    sceneBuffer
+  );
 
   const canvas = document.createElement("canvas");
   canvas.width = size;
@@ -90,9 +85,7 @@ async function main() {
   const indicesBuffer = createBuffer(device, indices, GPUBufferUsage.INDEX);
 
   function render() {
-    const storageValues = new Float32Array(scene);
-    console.log(scene, storageValues);
-
+    const storageValues = new Float32Array(sceneBuffer);
     const storageBuffer = device.createBuffer({
       size: Math.max(48, storageValues.byteLength),
       usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
