@@ -1,37 +1,11 @@
 const eps = 1e-9;
 
-struct VSInput {
-  @location(0) position: vec4f,
-};
-
-struct VSOutput {
-  @builtin(position) position: vec4f,
-};
-
-@vertex
-fn vsMain(in: VSInput) -> VSOutput {
-  var out: VSOutput;
-  out.position = in.position;
-  return out;
-}
-
-fn linear(p: vec2f, t: f32) -> f32 {
-  return p.x * t + p.y;
-}
-
 fn quadratic(p: vec3f, t: f32) -> f32 {
   return p.x * t * t + p.y * t + p.z;
 }
 
 fn cubic(p: vec4f, t: f32) -> f32 {
   return p.x * t * t * t + p.y * t * t + p.z * t + p.w;
-}
-
-fn solve_linear(p: vec2f) -> f32 {
-  if abs(p.x) < eps {
-    return -1;
-  }
-  return -p.y / p.x;
 }
 
 fn solve_quadratic(p: vec3f) -> vec2f {
@@ -64,6 +38,7 @@ fn solve_cubic(p: vec4f, t1: f32, t2: f32) -> f32 {
   if (f1 > eps && f2 > eps) || (f1 < -eps && f2 < -eps) {
     return -1;
   }
+  // Newton's method
   var t = (t1 + t2) / 2;
   var i: u32 = 0;
   loop {
@@ -76,20 +51,12 @@ fn solve_cubic(p: vec4f, t1: f32, t2: f32) -> f32 {
   return clamp(t, t1, t2);
 }
 
-fn count_linear(x: vec2f, y: vec2f) -> i32 {
-  let t = solve_linear(y);
-  return select(0, 1, t >= -eps && t <= 1 + eps && linear(x, t) < 0);
-}
-
 fn count_monotonic(x: vec4f, y: vec4f, t1: f32, t2: f32) -> i32 {
   let t = solve_cubic(y, t1, t2);
   return select(0, 1, t >= t1 - eps && t <= t2 + eps && cubic(x, t) < 0);
 }
 
 fn count_crossings(x: vec4f, y: vec4f) -> i32 {
-  // if x.x == 0 && x.y == 0 && y.x == 0 && y.y == 0 {
-  //   return count_linear(x.zw, y.zw);
-  // }
   let C = solve_quadratic(y.xyz * vec3f(3, 2, 1));
   return (
     count_monotonic(x, y, 0, C.x) +
@@ -98,15 +65,20 @@ fn count_crossings(x: vec4f, y: vec4f) -> i32 {
   );
 }
 
-// struct CubicSegment {
-//   x: vec4f,
-//   y: vec4f
-// };
+struct VSInput {
+  @location(0) position: vec4f,
+};
 
-// struct ClosedCurve {
-//   fill: vec4f,
-//   segments: array<CubicSegment>
-// };
+struct VSOutput {
+  @builtin(position) position: vec4f,
+};
+
+@vertex
+fn vsMain(in: VSInput) -> VSOutput {
+  var out: VSOutput;
+  out.position = in.position;
+  return out;
+}
 
 @group(0) @binding(0) var<storage> curve: array<vec4f>;
 
