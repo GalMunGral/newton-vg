@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "esbuild src/index.ts --loader:.wgsl=text --loader:.svg=text --bundle --outdir=dist --watch --serve --serve-fallback=index.html"
+    "dev": "esbuild src/index.ts --loader:.wgsl=text --bundle --outdir=dist --watch --serve --serve-fallback=index.html",
+    "build": "esbuild src/index.ts --loader:.wgsl=text --bundle --outdir=dist"
   },
   "author": "",
   "license": "ISC",
