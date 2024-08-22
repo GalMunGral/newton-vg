@@ -1,5 +1,3 @@
-const { cos, sin, acos, PI, sqrt } = Math;
-
 export type SvgPathCommands = {
   width: number;
   height: number;
@@ -392,25 +390,39 @@ export function encode(
   node: SVGElement,
   buffer: number[],
   transform: number[][] = identity,
-  fill: number[] = [0, 0, 0, 0]
+  fill: number[] = [0, 0, 0, 0],
+  stroke: number[] = [0, 0, 0, 0],
+  strokeWidth: number = 1
 ) {
-  const s = node.getAttribute("fill");
-  if (s) fill = parseColor(s);
+  const f = node.getAttribute("fill");
+  if (f) fill = parseColor(f);
+  const s = node.getAttribute("stroke");
+  if (s) stroke = parseColor(s);
+  const sw = node.getAttribute("stroke-width");
+  if (sw) strokeWidth = Number(sw);
 
   switch (node.tagName) {
+    case "svg":
     case "g": {
       const t = node.getAttribute("transform");
       if (t) transform = matmul(transform, parseMatrix(t));
       for (let n of node.children) {
-        encode(n as SVGElement, buffer, transform, fill);
+        encode(n as SVGElement, buffer, transform, fill, stroke, strokeWidth);
       }
     }
     case "path": {
       const d = node.getAttribute("d");
-      if (d) {
-        const commands = parseSvgPath(d);
-        encodePathCommand(commands, buffer, transform, fill);
-      }
+      if (!d) return;
+      const commands = parseSvgPath(d);
+      buffer.push(...fill);
+      buffer.push(...stroke);
+      buffer.push(
+        commands.filter((c) => c.type !== "MOVE_TO").length,
+        strokeWidth / 2,
+        0,
+        0
+      );
+      encodePathCommand(commands, buffer, transform);
     }
   }
 }
@@ -418,16 +430,10 @@ export function encode(
 export function encodePathCommand(
   commands: Command[],
   buffer: number[],
-  transform: number[][],
-  fill: number[]
+  transform: number[][]
 ) {
   let start: number[] = [0, 0];
   let q: number[] = [0, 0];
-
-  if (fill[3] === 0) return;
-
-  buffer.push(...fill);
-  buffer.push(commands.filter((c) => c.type !== "MOVE_TO").length, 0, 0, 0);
 
   for (const cmd of commands) {
     switch (cmd.type) {
@@ -463,7 +469,13 @@ export function encodePathCommand(
         break;
       }
       default:
-        console.log("not handled", cmd);
+        console.log("NOT IMPLEMENTED", cmd);
     }
   }
+}
+
+export function parseViewBox(svg: SVGElement) {
+  const v = svg.getAttribute("viewBox");
+  if (!v) return [0, 0, 0, 0];
+  return v.split(/\s+/).map((n) => Number(n));
 }

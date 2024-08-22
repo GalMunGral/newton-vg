@@ -1,23 +1,46 @@
-import { encode } from "./svg";
-import shaderSrc from "./solver.wgsl";
-import { createBuffer } from "./utils";
-import tiger from "./Ghostscript_Tiger.svg";
+import { encode, parseViewBox } from "./svg";
+import shaderSrc from "./newton.wgsl";
 
-const size = 900;
+export type TypedArray = Float32Array | Uint16Array;
+export type TypedArrayConstructor = new (a: ArrayBuffer) => TypedArray;
+
+export function createBuffer(
+  device: GPUDevice,
+  data: TypedArray,
+  usage: GPUTextureUsageFlags
+): GPUBuffer {
+  const buffer = device.createBuffer({
+    size: data.byteLength,
+    usage,
+    mappedAtCreation: true,
+  });
+  const dst = new (data.constructor as TypedArrayConstructor)(
+    buffer.getMappedRange()
+  );
+  dst.set(data);
+  buffer.unmap();
+  return buffer;
+}
 
 async function main() {
-  const tigerSvg = new DOMParser().parseFromString(tiger, "text/xml");
-  const sceneBuffer: number[] = [];
-
-  encode(
-    tigerSvg.firstElementChild?.firstElementChild as SVGElement,
-    sceneBuffer
+  const doc = new DOMParser().parseFromString(
+    await (
+      await fetch(
+        "https://upload.wikimedia.org/wikipedia/commons/f/fd/Ghostscript_Tiger.svg"
+      )
+    ).text(),
+    "text/xml"
   );
+  const svg = doc.firstElementChild as SVGElement;
 
+  const [, , width, height] = parseViewBox(svg);
   const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size;
+  canvas.width = width;
+  canvas.height = height;
   document.body.append(canvas);
+
+  const sceneBuffer: number[] = [];
+  encode(svg, sceneBuffer);
 
   const context: GPUCanvasContext = canvas.getContext("webgpu")!;
 
