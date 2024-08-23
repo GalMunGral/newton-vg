@@ -186,7 +186,7 @@ fn fsMain(@builtin(position) pos: vec4f) -> @location(0) vec4f {
   while i < arrayLength(&buf) {
     let fill = vec4f(buf[i], buf[i + 1], buf[i + 2], buf[i + 3]);
     let stroke = vec4f(buf[i + 4], buf[i + 5], buf[i + 6], buf[i + 7]);
-    let half_width = buf[i + 8];
+    let stroke_width = buf[i + 8];
     let n = u32(buf[i + 9]);
     i += 10;
     if fill.a > 0 {
@@ -207,7 +207,7 @@ fn fsMain(@builtin(position) pos: vec4f) -> @location(0) vec4f {
         color = fill;
       }
     }
-    if stroke.a > 0 && half_width > 0 {
+    if stroke.a > 0 && stroke_width > 0 {
       for (var j = 0u; j < n; j++) {
         let offset = i + 8 * j;
         let a = buf[offset];
@@ -218,7 +218,7 @@ fn fsMain(@builtin(position) pos: vec4f) -> @location(0) vec4f {
         let f = buf[offset + 5];
         let g = buf[offset + 6];
         let h = buf[offset + 7] - (pos.y + 1e-4);
-        let dist = minimize(
+        let dist = sqrt(minimize(
           a * a + e * e,
           2 * a * b + 2 * e * f,
           2 * a * c + b * b + 2 * e * g + f * f,
@@ -226,8 +226,8 @@ fn fsMain(@builtin(position) pos: vec4f) -> @location(0) vec4f {
           2 * b * d + c * c + 2 * f * h + g * g,
           2 * c * d + 2 * g * h,
           d * d + h * h 
-        );
-        if dist >= 0 && dist <= half_width {
+        ));
+        if dist >= 0 && dist <= stroke_width {
           color = stroke;
         }
       }

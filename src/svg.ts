@@ -416,7 +416,7 @@ export function encode(
       const commands = parseSvgPath(d);
       buffer.push(...fill);
       buffer.push(...stroke);
-      buffer.push(strokeWidth / 2);
+      buffer.push(strokeWidth);
       buffer.push(commands.filter((c) => c.type !== "MOVE_TO").length);
       encodePathCommand(commands, buffer, transform);
     }
