@@ -54,7 +54,7 @@ async function main() {
     alphaMode: "premultiplied",
   });
 
-  const sampleCount = 4;
+  const sampleCount = 1;
 
   const renderTarget = device.createTexture({
     size: [canvas.width, canvas.height],
@@ -125,8 +125,9 @@ async function main() {
     const passEncoder = commandEncoder.beginRenderPass({
       colorAttachments: [
         {
-          view: renderTarget.createView(),
-          resolveTarget: context.getCurrentTexture().createView(),
+          // view: renderTarget.createView(),
+          // resolveTarget: context.getCurrentTexture().createView(),
+          view: context.getCurrentTexture().createView(),
           clearValue: { r: 0, g: 0, b: 0, a: 0 },
           loadOp: "clear",
           storeOp: "store",
