@@ -1,6 +1,6 @@
 const atol: f32 = 1e-09;
 const rtol: f32 = 1e-05;
-const max_iter: u32 = 20;
+const max_iter: u32 = 5;
 
 fn swap(a_ptr: ptr<function, f32>, b_ptr: ptr<function, f32>) {
   let tmp = *a_ptr;
@@ -8,7 +8,7 @@ fn swap(a_ptr: ptr<function, f32>, b_ptr: ptr<function, f32>) {
   *b_ptr = tmp;
 }
 
-fn isclose(a: f32, b: f32) -> bool {
+fn is_close(a: f32, b: f32) -> bool {
   return abs(a - b) <= atol + rtol * abs(b);
 }
 
@@ -32,7 +32,7 @@ fn sextic(a: f32, b: f32, c: f32, d: f32, e: f32, f: f32, g: f32, t: f32) -> f32
   return ((((((a * t) + b) * t + c) * t + d) * t + e) * t + f) * t + g;
 }
 
-fn monotonize_2(arr: ptr<function, array<f32, 2>>) {
+fn monotonize2(arr: ptr<function, array<f32, 2>>) {
   var prev = 0f;
   for (var i = 0; i < 2; i++) {
     if arr[i] > prev { prev = arr[i]; }
@@ -40,7 +40,7 @@ fn monotonize_2(arr: ptr<function, array<f32, 2>>) {
   }
 }
 
-fn monotonize_3(arr: ptr<function, array<f32, 3>>) {
+fn monotonize3(arr: ptr<function, array<f32, 3>>) {
   var prev = 0f;
   for (var i = 0; i < 3; i++) {
     if arr[i] > prev { prev = arr[i]; }
@@ -48,7 +48,7 @@ fn monotonize_3(arr: ptr<function, array<f32, 3>>) {
   }
 }
 
-fn monotonize_4(arr: ptr<function, array<f32, 4>>) {
+fn monotonize4(arr: ptr<function, array<f32, 4>>) {
   var prev = 0f;
   for (var i = 0; i < 4; i++) {
     if arr[i] > prev { prev = arr[i]; }
@@ -66,16 +66,16 @@ fn solve_quadratic(a: f32, b: f32, c: f32) -> array<f32,2> {
 }
 
 fn solve_cubic_monotonic(a: f32, b: f32, c: f32, d: f32, t1: f32, t2: f32) -> f32 {
-  if isclose(t1, t2) { return -1; }
+  if is_close(t1, t2) { return -1; }
   let f1 = cubic(a, b, c, d, t1);
   let f2 = cubic(a, b, c, d, t2);
-  if isclose(f1, 0) { return t1; }
-  if isclose(f2, 0) { return t2; }
+  if is_close(f1, 0) { return t1; }
+  if is_close(f2, 0) { return t2; }
   if (f1 > 0 && f2 > 0) || (f1 < 0 && f2 < 0) { return -1; }
   var t = (t1 + t2) / 2;
   for (var i = 0u; i < max_iter; i++) {
     var f = cubic(a, b, c, d, t);
-    if isclose(f, 0) { break; }
+    if is_close(f, 0) { break; }
     t -= f / quadratic(3 * a, 2 * b, c, t);
   }
   return clamp(t, t1, t2);
@@ -83,7 +83,7 @@ fn solve_cubic_monotonic(a: f32, b: f32, c: f32, d: f32, t1: f32, t2: f32) -> f3
 
 fn solve_cubic(a: f32, b: f32, c: f32, d: f32) -> array<f32, 3> {
   var crit = solve_quadratic(3 * a, 2 * b, c);
-  monotonize_2(&crit);
+  monotonize2(&crit);
   return array(
     solve_cubic_monotonic(a, b, c, d, 0, crit[0]),
     solve_cubic_monotonic(a, b, c, d, crit[0], crit[1]),
@@ -92,16 +92,16 @@ fn solve_cubic(a: f32, b: f32, c: f32, d: f32) -> array<f32, 3> {
 }
 
 fn solve_quartic_monotonic(a: f32, b: f32, c: f32, d: f32, e: f32, t1: f32, t2: f32) -> f32 {
-  if isclose(t1, t2) { return -1; }
+  if is_close(t1, t2) { return -1; }
   let f1 = quartic(a, b, c, d, e, t1);
   let f2 = quartic(a, b, c, d, e, t2);
-  if isclose(f1, 0) { return t1; }
-  if isclose(f2, 0) { return t2; }
+  if is_close(f1, 0) { return t1; }
+  if is_close(f2, 0) { return t2; }
   if (f1 > 0 && f2 > 0) || (f1 < 0 && f2 < 0) { return -1; }
   var t = (t1 + t2) / 2;
   for (var i = 0u; i < max_iter; i++) {
     var f = quartic(a, b, c, d, e, t);
-    if isclose(f, 0) { break; }
+    if is_close(f, 0) { break; }
     t -= f / cubic(4 * a, 3 * b, 2 * c, d, t);
   }
   return clamp(t, t1, t2);
@@ -109,7 +109,7 @@ fn solve_quartic_monotonic(a: f32, b: f32, c: f32, d: f32, e: f32, t1: f32, t2: 
 
 fn solve_quartic(a: f32, b: f32, c: f32, d: f32, e: f32) -> array<f32, 4> {
   var crit = solve_cubic(4 * a, 3 * b, 2 * c, d);
-  monotonize_3(&crit);
+  monotonize3(&crit);
   return array(
     solve_quartic_monotonic(a, b, c, d, e, 0, crit[0]),
     solve_quartic_monotonic(a, b, c, d, e, crit[0], crit[1]),
@@ -119,16 +119,16 @@ fn solve_quartic(a: f32, b: f32, c: f32, d: f32, e: f32) -> array<f32, 4> {
 }
 
 fn solve_quintic_monotonic(a: f32, b: f32, c: f32, d: f32, e: f32, f: f32, t1: f32, t2: f32) -> f32 {
-  if isclose(t1, t2) { return -1; }
+  if is_close(t1, t2) { return -1; }
   let f1 = quintic(a, b, c, d, e, f, t1);
   let f2 = quintic(a, b, c, d, e, f, t2);
-  if isclose(f1, 0) { return t1; }
-  if isclose(f2, 0) { return t2; }
+  if is_close(f1, 0) { return t1; }
+  if is_close(f2, 0) { return t2; }
   if (f1 > 0 && f2 > 0) || (f1 < 0 && f2 < 0) { return -1; }
   var t = (t1 + t2) / 2;
   for (var i = 0u; i < max_iter; i++) {
     var f = quintic(a, b, c, d, e, f, t);
-    if isclose(f, 0) { break; }
+    if is_close(f, 0) { break; }
     t -= f / quartic(5 * a, 4 * b, 3 * c, 2 * d, e, t);
   }
   return clamp(t, t1, t2);
@@ -136,7 +136,7 @@ fn solve_quintic_monotonic(a: f32, b: f32, c: f32, d: f32, e: f32, f: f32, t1: f
 
 fn solve_quintic(a: f32, b: f32, c: f32, d: f32, e: f32, f: f32) -> array<f32, 5> {
   var crit = solve_quartic(5 * a, 4 * b, 3 * c, 2 * d, e);
-  monotonize_4(&crit);
+  monotonize4(&crit);
   return array(
     solve_quintic_monotonic(a, b, c, d, e, f, 0, crit[0]),
     solve_quintic_monotonic(a, b, c, d, e, f, crit[0], crit[1]),
