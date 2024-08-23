@@ -1,6 +1,6 @@
-const atol: f32 = 1e-09;
-const rtol: f32 = 1e-05;
-const max_iter: u32 = 5;
+const atol = 1e-9f;
+const rtol = 1e-5f;
+const max_iter = 20u;
 
 fn swap(a_ptr: ptr<function, f32>, b_ptr: ptr<function, f32>) {
   let tmp = *a_ptr;
@@ -32,14 +32,6 @@ fn sextic(a: f32, b: f32, c: f32, d: f32, e: f32, f: f32, g: f32, t: f32) -> f32
   return ((((((a * t) + b) * t + c) * t + d) * t + e) * t + f) * t + g;
 }
 
-fn monotonize2(arr: ptr<function, array<f32, 2>>) {
-  var prev = 0f;
-  for (var i = 0; i < 2; i++) {
-    if arr[i] > prev { prev = arr[i]; }
-    else { arr[i] = prev; }
-  }
-}
-
 fn monotonize3(arr: ptr<function, array<f32, 3>>) {
   var prev = 0f;
   for (var i = 0; i < 3; i++) {
@@ -68,9 +60,9 @@ fn solve_quadratic(a: f32, b: f32, c: f32) -> array<f32,2> {
 fn solve_cubic_monotonic(a: f32, b: f32, c: f32, d: f32, t1: f32, t2: f32) -> f32 {
   if is_close(t1, t2) { return -1; }
   let f1 = cubic(a, b, c, d, t1);
-  let f2 = cubic(a, b, c, d, t2);
   if is_close(f1, 0) { return t1; }
-  if is_close(f2, 0) { return t2; }
+  let f2 = cubic(a, b, c, d, t2);
+  if is_close(f2, 0) { return -1; }
   if (f1 > 0 && f2 > 0) || (f1 < 0 && f2 < 0) { return -1; }
   var t = (t1 + t2) / 2;
   for (var i = 0u; i < max_iter; i++) {
@@ -83,7 +75,6 @@ fn solve_cubic_monotonic(a: f32, b: f32, c: f32, d: f32, t1: f32, t2: f32) -> f3
 
 fn solve_cubic(a: f32, b: f32, c: f32, d: f32) -> array<f32, 3> {
   var crit = solve_quadratic(3 * a, 2 * b, c);
-  monotonize2(&crit);
   return array(
     solve_cubic_monotonic(a, b, c, d, 0, crit[0]),
     solve_cubic_monotonic(a, b, c, d, crit[0], crit[1]),
@@ -94,9 +85,9 @@ fn solve_cubic(a: f32, b: f32, c: f32, d: f32) -> array<f32, 3> {
 fn solve_quartic_monotonic(a: f32, b: f32, c: f32, d: f32, e: f32, t1: f32, t2: f32) -> f32 {
   if is_close(t1, t2) { return -1; }
   let f1 = quartic(a, b, c, d, e, t1);
-  let f2 = quartic(a, b, c, d, e, t2);
   if is_close(f1, 0) { return t1; }
-  if is_close(f2, 0) { return t2; }
+  let f2 = quartic(a, b, c, d, e, t2);
+  if is_close(f2, 0) { return -1; }
   if (f1 > 0 && f2 > 0) || (f1 < 0 && f2 < 0) { return -1; }
   var t = (t1 + t2) / 2;
   for (var i = 0u; i < max_iter; i++) {
@@ -121,9 +112,9 @@ fn solve_quartic(a: f32, b: f32, c: f32, d: f32, e: f32) -> array<f32, 4> {
 fn solve_quintic_monotonic(a: f32, b: f32, c: f32, d: f32, e: f32, f: f32, t1: f32, t2: f32) -> f32 {
   if is_close(t1, t2) { return -1; }
   let f1 = quintic(a, b, c, d, e, f, t1);
-  let f2 = quintic(a, b, c, d, e, f, t2);
   if is_close(f1, 0) { return t1; }
-  if is_close(f2, 0) { return t2; }
+  let f2 = quintic(a, b, c, d, e, f, t2);
+  if is_close(f2, 0) { return -1; }
   if (f1 > 0 && f2 > 0) || (f1 < 0 && f2 < 0) { return -1; }
   var t = (t1 + t2) / 2;
   for (var i = 0u; i < max_iter; i++) {
@@ -162,7 +153,7 @@ fn count_crossings(a: f32, b: f32, c: f32, d: f32, e: f32, f: f32, g: f32, h: f3
 
 fn minimize(a: f32, b: f32, c: f32, d: f32, e: f32, f: f32, g: f32) -> f32 {
   let crit = solve_quintic(6 * a, 5 * b, 4 * c, 3 * d, 2 * e, f);
-  var res: f32 = 1e10;
+  var res: f32 = sextic(a, b, c, d, e, f, g, 1);
   for (var i = 0; i < 5; i++) {
     if crit[i] >= 0 && crit[i] <= 1 {
       res = min(res, sextic(a, b, c, d, e, f, g, crit[i]));
@@ -178,62 +169,59 @@ fn vsMain(@location(0) position: vec4f) -> @builtin(position) vec4f {
 
 @group(0) @binding(0) var<storage> buf: array<f32>;
 
+fn over(c1: vec4f, c2: vec4f) -> vec4f {
+  let a = c1.a + (1 - c1.a) * c2.a;
+  if a == 0 { return vec4f(0, 0, 0, 0); }
+  return vec4f((c1.rgb * c1.a + c2.rgb * (1 - c1.a) * c2.a) / a, a);
+}
+
 @fragment
 fn fsMain(@builtin(position) pos: vec4f) -> @location(0) vec4f {
   var color = vec4f(0, 0, 0, 0);
   
-  var i: u32 = 0;
-  while i < arrayLength(&buf) {
-    let fill = vec4f(buf[i], buf[i + 1], buf[i + 2], buf[i + 3]);
-    let stroke = vec4f(buf[i + 4], buf[i + 5], buf[i + 6], buf[i + 7]);
+  for(var i = 0u; i < arrayLength(&buf);) {
+    let fill_color = vec4f(buf[i], buf[i + 1], buf[i + 2], buf[i + 3]);
+    let stroke_color = vec4f(buf[i + 4], buf[i + 5], buf[i + 6], buf[i + 7]);
     let stroke_width = buf[i + 8];
     let n = u32(buf[i + 9]);
     i += 10;
-    if fill.a > 0 {
-      var crossings: i32 = 0;
-      for (var j = 0u; j < n; j++) {
-        let offset = i + 8 * j;
-        let a = buf[offset];
-        let b = buf[offset + 1];
-        let c = buf[offset + 2];
-        let d = buf[offset + 3] - pos.x;
-        let e = buf[offset + 4];
-        let f = buf[offset + 5];
-        let g = buf[offset + 6];
-        let h = buf[offset + 7] - (pos.y + 1e-4);
-        crossings += count_crossings(a, b, c, d, e, f, g, h);
-      }
-      if crossings % 2 == 1 {
-        color = fill;
-      }
+
+    var crossings: i32 = 0;
+    var dist: f32 = 1e10;
+
+    for (var j = 0u; j < n; j++) {
+      let offset = i + 8 * j;
+      let a = buf[offset];
+      let b = buf[offset + 1];
+      let c = buf[offset + 2];
+      let d = buf[offset + 3] - pos.x;
+      let e = buf[offset + 4];
+      let f = buf[offset + 5];
+      let g = buf[offset + 6];
+      let h = buf[offset + 7] - (pos.y + 1e-3);
+      crossings += count_crossings(a, b, c, d, e, f, g, h);
+      dist = min(dist, sqrt(minimize(
+        a * a + e * e,
+        2 * a * b + 2 * e * f,
+        2 * a * c + b * b + 2 * e * g + f * f,
+        2 * a * d + 2 * b * c + 2 * e * h + 2 * f * g,
+        2 * b * d + c * c + 2 * f * h + g * g,
+        2 * c * d + 2 * g * h,
+        d * d + h * h 
+      )));
     }
-    if stroke.a > 0 && stroke_width > 0 {
-      for (var j = 0u; j < n; j++) {
-        let offset = i + 8 * j;
-        let a = buf[offset];
-        let b = buf[offset + 1];
-        let c = buf[offset + 2];
-        let d = buf[offset + 3] - pos.x;
-        let e = buf[offset + 4];
-        let f = buf[offset + 5];
-        let g = buf[offset + 6];
-        let h = buf[offset + 7] - (pos.y + 1e-4);
-        let dist = sqrt(minimize(
-          a * a + e * e,
-          2 * a * b + 2 * e * f,
-          2 * a * c + b * b + 2 * e * g + f * f,
-          2 * a * d + 2 * b * c + 2 * e * h + 2 * f * g,
-          2 * b * d + c * c + 2 * f * h + g * g,
-          2 * c * d + 2 * g * h,
-          d * d + h * h 
-        ));
-        if dist >= 0 && dist <= stroke_width {
-          color = stroke;
-        }
-      }
+
+    let fill_dist = select(dist, -dist, crossings % 2 == 1);
+    let fill_alpha = clamp(0.5 - 0.5 * fill_dist, 0, 1);
+    color = over(fill_color * vec4f(1, 1, 1, fill_alpha), color);
+
+    if stroke_width > 0 {
+      let stroke_dist = dist - stroke_width / 2;
+      let stroke_alpha = clamp(0.5 - 0.5 * stroke_dist, 0, 1);
+      color = over(stroke_color * vec4f(1, 1, 1, stroke_alpha), color);
     }
+
     i += 8 * n;
   }
-
   return color;
 }
