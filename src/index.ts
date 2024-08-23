@@ -74,7 +74,7 @@ async function main() {
 
   const shaderModule = device.createShaderModule({ code: shaderSrc });
   const pipeline = device.createRenderPipeline({
-    label: "hillshade",
+    label: "newton-vg",
     layout: "auto",
     vertex: {
       module: shaderModule,
