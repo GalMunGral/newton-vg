@@ -37,6 +37,8 @@ async function main() {
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
+  canvas.style.width = width / devicePixelRatio + "px";
+  canvas.style.height = height / devicePixelRatio + "px";
   document.body.append(canvas);
 
   const sceneBuffer: number[] = [];
