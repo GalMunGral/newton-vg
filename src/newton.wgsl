@@ -50,6 +50,7 @@ fn monotonize_4(arr: ptr<function, array<f32, 4>>) {
 
 fn solve_quadratic(a: f32, b: f32, c: f32) -> array<f32,2> {
   let d = b * b - 4 * a * c;
+  if a == 0 { return array(clamp(-c / b, 0, 1), 1); }
   if d < 0 { return array(0, 0); }
   var t1 = clamp((-b - sqrt(d)) / (2 * a), 0, 1);
   var t2 = clamp((-b + sqrt(d)) / (2 * a), 0, 1);

@@ -1,5 +1,6 @@
 import { encode, parseViewBox } from "./svg";
 import shaderSrc from "./newton.wgsl";
+import { debugRender } from "./debug";
 
 export type TypedArray = Float32Array | Uint16Array;
 export type TypedArrayConstructor = new (a: ArrayBuffer) => TypedArray;
@@ -34,12 +35,11 @@ async function main() {
   const svg = doc.firstElementChild as SVGElement;
 
   const [, , width, height] = parseViewBox(svg);
-  const canvas = document.createElement("canvas");
+  const canvas = document.querySelector("canvas#main") as HTMLCanvasElement;
   canvas.width = width;
   canvas.height = height;
   canvas.style.width = width / devicePixelRatio + "px";
   canvas.style.height = height / devicePixelRatio + "px";
-  document.body.append(canvas);
 
   const sceneBuffer: number[] = [];
   encode(svg, sceneBuffer);
@@ -151,6 +151,32 @@ async function main() {
     device.queue.submit([commandEncoder.finish()]);
   }
   requestAnimationFrame(render);
+
+  const debugCanvas = document.querySelector(
+    "canvas#debug"
+  ) as HTMLCanvasElement;
+  const scale = 1;
+  debugCanvas.width = width / scale;
+  debugCanvas.height = height / scale;
+  debugCanvas.style.width = width / devicePixelRatio + "px";
+  debugCanvas.style.height = height / devicePixelRatio + "px";
+  const debugContext = debugCanvas.getContext("2d");
+  const imageData = new ImageData(debugCanvas.width, debugCanvas.height);
+  for (let y = 0; y < debugCanvas.height; ++y) {
+    await new Promise((resolve) => setTimeout(resolve));
+    for (let x = 0; x < debugCanvas.width; ++x) {
+      const [r, g, b, a] = debugRender(
+        x * scale + Math.random() * 0.1,
+        y * scale + Math.random() * 0.1,
+        sceneBuffer
+      );
+      imageData.data[(y * debugCanvas.width + x) * 4] = r * 255;
+      imageData.data[(y * debugCanvas.width + x) * 4 + 1] = g * 255;
+      imageData.data[(y * debugCanvas.width + x) * 4 + 2] = b * 255;
+      imageData.data[(y * debugCanvas.width + x) * 4 + 3] = a * 255;
+    }
+    debugContext?.putImageData(imageData, 0, 0);
+  }
 }
 
 main();
