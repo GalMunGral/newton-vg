@@ -174,6 +174,7 @@ async function debug(sceneBuffer: number[], canvas: HTMLCanvasElement) {
   const imageData = new ImageData(debugCanvas.width, debugCanvas.height);
 
   let completed = 0;
+  const start = Date.now();
   const worker = new Worker("./worker.js");
   worker.onmessage = (e) => {
     const [x, y, r, g, b, a] = e.data as number[];
@@ -182,7 +183,16 @@ async function debug(sceneBuffer: number[], canvas: HTMLCanvasElement) {
     imageData.data[(y * width + x) * 4 + 2] = b * 255;
     imageData.data[(y * width + x) * 4 + 3] = a * 255;
     debugContext?.putImageData(imageData, 0, 0);
-    progress.textContent = `Rendering... [${++completed}/${N}]`;
+    ++completed;
+    const timePerPixel = (Date.now() - start) / completed;
+    const timeRemaining = timePerPixel * (N - completed);
+
+    const minutesStr = Math.floor(timeRemaining / 1000 / 60);
+    const secondsStr = ((timeRemaining / 1000) % 60)
+      .toFixed(2)
+      .padStart(5, "xa0");
+    const completedStr = String(completed).padStart(String(N).length, "\xa0");
+    progress.textContent = `${minutesStr}m${secondsStr}s remaining ${completedStr}/${N} completed`;
   };
   worker.postMessage({ width, height, scale, sceneBuffer });
 }
