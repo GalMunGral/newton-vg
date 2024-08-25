@@ -1,11 +1,133 @@
-<a
-  href="https://raw.githubusercontent.com/GalMunGral/newton-vg/main/src/newton.wgsl"
-  >Source (WGSL)</a
->
-<canvas id="main" width="450" height="450"></canvas>
-<a
-  href="https://raw.githubusercontent.com/GalMunGral/newton-vg/main/src/debug.ts"
-  >Source (TS)</a
->
-<canvas id="debug" width="450" height="450"></canvas>
-<script src="index.js"></script>
+<!DOCTYPE html>
+<head>
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"
+    integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+"
+    crossorigin="anonymous"
+  />
+  <script>
+    window.WebFontConfig = {
+      custom: {
+        families: [
+          "KaTeX_AMS",
+          "KaTeX_Caligraphic:n4,n7",
+          "KaTeX_Fraktur:n4,n7",
+          "KaTeX_Main:n4,n7,i4,i7",
+          "KaTeX_Math:i4,i7",
+          "KaTeX_Script",
+          "KaTeX_SansSerif:n4,n7,i4",
+          "KaTeX_Size1",
+          "KaTeX_Size2",
+          "KaTeX_Size3",
+          "KaTeX_Size4",
+          "KaTeX_Typewriter",
+        ],
+      },
+    };
+  </script>
+  <script
+    defer
+    src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"
+    integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg"
+    crossorigin="anonymous"
+  ></script>
+  <script
+    defer
+    src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"
+    integrity="sha384-43gviWU0YVjaDtb/GhzOouOXtZMP/7XUzwPTstBeZFe/+rCMvRwr4yROQP43s0Xk"
+    crossorigin="anonymous"
+  ></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      renderMathInElement(document.body, {
+        // customised options
+        // • auto-render specific keys, e.g.:
+        delimiters: [
+          { left: "$$", right: "$$", display: true },
+          { left: "$", right: "$", display: false },
+          { left: "\\(", right: "\\)", display: false },
+          { left: "\\[", right: "\\]", display: true },
+        ],
+        // • rendering keys, e.g.:
+        throwOnError: false,
+      });
+    });
+  </script>
+</head>
+<body style="padding: 100px">
+  <h1>GPU Path Rendering via Polynomial Root Finding</h1>
+  <p>
+    The opacities of fills and strokes are determined by
+    <em>signed distances</em>: $$\alpha_{fill}(\gamma, p) :=
+    clamp\left(\frac{1}{2}\left[1-(-1)^{wind(\gamma, p)}\min_{q\in \gamma}{d(p,
+    q)}\right], 0, 1\right),\quad \alpha_{stroke}(\gamma, p) :=
+    clamp\left(\frac{1}{2}\left[1-\min_{q\in \gamma}{d(p,
+    q)}+\frac{w}{2}\right], 0, 1\right),$$
+  </p>
+  <div style="display: flex; flex-direction: row; gap: 20px">
+    <div>
+      <h4>
+        CPU (<a
+          href="https://raw.githubusercontent.com/GalMunGral/newton-vg/main/src/debug.ts"
+          >TypeScript</a
+        >)
+      </h4>
+      <canvas
+        id="debug"
+        width="450"
+        height="450"
+        style="display: block; background: whitesmoke"
+      ></canvas>
+      <span id="progress" style="font-family: monospace">Rendering...</span>
+    </div>
+    <div>
+      <h4>
+        GPU (<a
+          href="https://raw.githubusercontent.com/GalMunGral/newton-vg/main/src/newton.wgsl"
+          >WGSL</a
+        >)
+      </h4>
+      <canvas
+        id="main"
+        width="450"
+        height="450"
+        style="display: block"
+      ></canvas>
+    </div>
+  </div>
+  <h2>Implementation</h2>
+  <p>
+    We shoot a horizontal ray to the left from each point $p = [x, y]^\top$, and
+    for each cubic segment $\gamma_i(t) = [x_i(t), y_i(t)]^\top$, where $x_i(t)
+    = at^3 + bt^2 + ct + d$ and $y_i(t) = et^3 + ft^2 + gt + h$, we compute the
+    number of intersections and the minimum distance between $p$ and $\gamma_i$.
+  </p>
+  <p>
+    The number of intersections is counted by finding the roots of a
+    <em>cubic polynomial</em>: $$\sum_{t \in [0,1)}\left[ at^3+bt^2+ct+d-x < 0
+    \wedge et^3+ft^2+gt+h-y = 0 \right]$$ The total number of intersections has
+    the same parity as the winding number $$wind(\gamma, p) \equiv \sum_i\sum_{t
+    \in [0,1)}\left[x_i(t) - x_p < 0 \wedge y_i(t) - y_p = 0 \right] \pmod 2 $$
+  </p>
+  <p>
+    The minimum squared distance $$\min_{q\in \gamma_i}{d^2(p, q)} = \min_{t\in
+    [0,1)} \left[(at^3+bt^2+ct+d-x)^2 + (et^3+ft^2+gt+h-y)^2\right]$$ is
+    computed by evaluating the function at its critical points, i.e., the roots
+    of the
+    <em>quintic polynomial</em>: $$6(a^2 + e^2)t^5 + 10 (ab+ ef) t^4 + (8ac +
+    8eg + 4b^2 +4f^2) t^3 + 6(ad + bc + eh + fg) t^2 + (4bd + 4fh +2 c^2 + 2g^2)
+    t + 2cd + 2gh.$$
+  </p>
+  <p>
+    The root-finding algorithm is based on
+    <a href="https://dl.acm.org/doi/10.1145/3532836.3536266"
+      ><em
+        >"A Fast & Robust Solution for Cubic & Higher-Order Polynomials"</em
+      ></a
+    >
+    by Cem Yuksel.
+  </p>
+
+  <script src="index.js"></script>
+</body>

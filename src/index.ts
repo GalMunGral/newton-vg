@@ -152,6 +152,7 @@ async function main() {
   }
   requestAnimationFrame(render);
 
+  const progress = document.querySelector("span#progress") as HTMLSpanElement;
   const debugCanvas = document.querySelector(
     "canvas#debug"
   ) as HTMLCanvasElement;
@@ -163,7 +164,8 @@ async function main() {
   const debugContext = debugCanvas.getContext("2d");
   const imageData = new ImageData(debugCanvas.width, debugCanvas.height);
   for (let y = 0; y < debugCanvas.height; ++y) {
-    await new Promise((resolve) => setTimeout(resolve));
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    progress.textContent = `Rendering... (y = ${y}/${debugCanvas.height})`;
     for (let x = 0; x < debugCanvas.width; ++x) {
       const [r, g, b, a] = debugRender(
         x * scale + Math.random() * 0.1,
