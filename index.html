@@ -58,12 +58,11 @@
 <body style="padding: 20px 100px 100px">
   <h1>GPU Path Rendering via Polynomial Root Finding</h1>
   <p>
-    The opacities of fills and strokes are determined by
+    The alpha values of of fills and strokes are determined by
     <em>signed distances</em>: $$\alpha_{fill}(\gamma, p) :=
-    clamp\left(\frac{1}{2}\left[1-(-1)^{wind(\gamma, p)}\min_{q\in \gamma}{d(p,
-    q)}\right], 0, 1\right),\quad \alpha_{stroke}(\gamma, p) :=
-    clamp\left(\frac{1}{2}\left[1-\min_{q\in \gamma}{d(p,
-    q)}+\frac{w}{2}\right], 0, 1\right),$$
+    \frac{1}{2}\left[1-(-1)^{wind(\gamma, p)}\min_{q\in \gamma}{d(p,
+    q)}\right],\quad \alpha_{stroke}(\gamma, p) := \frac{1}{2}\left[1-\min_{q\in
+    \gamma}{d(p, q)}+\frac{w}{2}\right].$$
   </p>
   <div style="display: flex; flex-direction: row; gap: 20px">
     <div>
@@ -115,9 +114,9 @@
     The minimum squared distance $$\min_{q\in \gamma_i}{d^2(p, q)} = \min_{t\in
     [0,1)} \left[(at^3+bt^2+ct+d-x)^2 + (et^3+ft^2+gt+h-y)^2\right]$$ is
     computed by evaluating the function at its critical points, i.e., the roots
-    of its derivative, which is a quintic polynomial: $$6(a^2 + e^2)t^5 + 10
-    (ab+ ef) t^4 + (8ac + 8eg + 4b^2 +4f^2) t^3 + 6(ad + bc + eh + fg) t^2 +
-    (4bd + 4fh +2 c^2 + 2g^2) t + 2cd + 2gh.$$
+    of its derivative, a quintic polynomial: $$6(a^2 + e^2)t^5 + 10 (ab+ ef) t^4
+    + (8ac + 8eg + 4b^2 +4f^2) t^3 + 6(ad + bc + eh + fg) t^2 + (4bd + 4fh +2
+    c^2 + 2g^2) t + 2cd + 2gh.$$
   </p>
   <p>
     To find the roots of a polynomial of degree $D \geq 3$, we follow
