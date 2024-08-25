@@ -1,6 +1,5 @@
-import { encode, parseViewBox } from "./svg";
+import { encode, parseViewBox } from "./encoder";
 import shaderSrc from "./newton.wgsl";
-import { debugRender } from "./debug";
 
 export type TypedArray = Float32Array | Uint16Array;
 export type TypedArrayConstructor = new (a: ArrayBuffer) => TypedArray;
@@ -163,37 +162,27 @@ async function debug(sceneBuffer: number[], canvas: HTMLCanvasElement) {
     "canvas#debug"
   ) as HTMLCanvasElement;
   const scale = 1;
-  debugCanvas.width = canvas.width / scale;
-  debugCanvas.height = canvas.height / scale;
+  const width = canvas.width / scale;
+  const height = canvas.height / scale;
+  const N = width * height;
+
+  debugCanvas.width = width;
+  debugCanvas.height = height;
   debugCanvas.style.width = canvas.width / devicePixelRatio + "px";
   debugCanvas.style.height = canvas.height / devicePixelRatio + "px";
   const debugContext = debugCanvas.getContext("2d");
   const imageData = new ImageData(debugCanvas.width, debugCanvas.height);
 
-  const N = debugCanvas.width * debugCanvas.height;
-  const perm = Array(N)
-    .fill(0)
-    .map((_, i) => i);
-
-  for (let i = 0; i < N - 1; ++i) {
-    const j = i + Math.floor(Math.random() * (N - i));
-    [perm[i], perm[j]] = [perm[j], perm[i]];
-  }
-
-  for (const [i, idx] of perm.entries()) {
-    await new Promise((resolve) => requestAnimationFrame(resolve));
-    progress.textContent = `Rendering... [${i + 1}/${N}]`;
-    const x = idx % debugCanvas.width;
-    const y = Math.floor(idx / debugCanvas.width);
-    const [r, g, b, a] = debugRender(
-      x * scale + Math.random() * 0.1,
-      y * scale + Math.random() * 0.1,
-      sceneBuffer
-    );
-    imageData.data[(y * debugCanvas.width + x) * 4] = r * 255;
-    imageData.data[(y * debugCanvas.width + x) * 4 + 1] = g * 255;
-    imageData.data[(y * debugCanvas.width + x) * 4 + 2] = b * 255;
-    imageData.data[(y * debugCanvas.width + x) * 4 + 3] = a * 255;
+  let completed = 0;
+  const worker = new Worker("./worker.js");
+  worker.onmessage = (e) => {
+    const [x, y, r, g, b, a] = e.data as number[];
+    imageData.data[(y * width + x) * 4] = r * 255;
+    imageData.data[(y * width + x) * 4 + 1] = g * 255;
+    imageData.data[(y * width + x) * 4 + 2] = b * 255;
+    imageData.data[(y * width + x) * 4 + 3] = a * 255;
     debugContext?.putImageData(imageData, 0, 0);
-  }
+    progress.textContent = `Rendering... [${++completed}/${N}]`;
+  };
+  worker.postMessage({ width, height, scale, sceneBuffer });
 }

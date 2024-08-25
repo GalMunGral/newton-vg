@@ -1,6 +1,7 @@
 const atol: f32 = 1e-9;
 const rtol: f32 = 1e-5;
 const max_iter: u32 = 5;
+const pi = radians(180);
 
 fn swap(a_ptr: ptr<function, f32>, b_ptr: ptr<function, f32>) {
   let tmp = *a_ptr;
@@ -170,6 +171,10 @@ fn over(c1: vec4f, c2: vec4f) -> vec4f {
   return vec4f((c1.rgb * c1.a + c2.rgb * (1 - c1.a) * c2.a) / a, a);
 }
 
+fn coverage(x: f32) -> f32 {
+  return x * sqrt(1 - x * x) + asin(x);
+}
+
 @fragment
 fn fsMain(@builtin(position) pos: vec4f) -> @location(0) vec4f {
   var color = vec4f(0, 0, 0, 0);
@@ -206,13 +211,16 @@ fn fsMain(@builtin(position) pos: vec4f) -> @location(0) vec4f {
       )));
     }
 
-    let fill_dist = select(dist, -dist, crossings % 2 == 1);
-    let fill_alpha = 0.5 - clamp(fill_dist, -0.5, 0.5);
+    const r = 1f;
+
+    let sign = select(1f, -1f, crossings % 2 == 1);
+    let fill_dist = sign * min(dist, r) / r;
+    let fill_alpha = (0.5 * pi - coverage(fill_dist)) / pi;
     color = over(fill_color * vec4f(1, 1, 1, fill_alpha), color);
 
-    let d1 = min(dist - stroke_width / 2, 0.5);
-    let d2 = min(dist + stroke_width / 2, 0.5);
-    let stroke_alpha = d2 - d1;
+    let d1 = clamp(dist - stroke_width / 2, -r, r) / r;
+    let d2 = clamp(dist + stroke_width / 2, -r, r) / r;
+    let stroke_alpha = (coverage(d2) - coverage(d1)) / pi;
     color = over(stroke_color * vec4f(1, 1, 1, stroke_alpha), color);
 
     i += 8 * n;

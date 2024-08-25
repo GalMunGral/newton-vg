@@ -1,8 +1,36 @@
+type Params = {
+  width: number;
+  height: number;
+  scale: number;
+  sceneBuffer: number[];
+};
+
+onmessage = (e) => {
+  const { width, height, scale, sceneBuffer } = e.data as Params;
+  const N = width * height;
+
+  const perm = Array(N)
+    .fill(0)
+    .map((_, i) => i);
+
+  for (let i = 0; i < N - 1; ++i) {
+    const j = i + Math.floor(Math.random() * (N - i));
+    [perm[i], perm[j]] = [perm[j], perm[i]];
+  }
+
+  for (const idx of perm) {
+    const x = idx % width;
+    const y = Math.floor(idx / width);
+    const [r, g, b, a] = render(x * scale, y * scale, sceneBuffer);
+    postMessage([x, y, r, g, b, a]);
+  }
+};
+
 const atol: number = 1e-9;
 const rtol: number = 1e-5;
 const max_iter: number = 5;
 
-const { abs, max, min, sqrt } = Math;
+const { PI, abs, max, min, sqrt, asin } = Math;
 
 function sign(n: number): number {
   return n === 0 ? 0 : n > 0 ? 1 : -1;
@@ -328,7 +356,11 @@ function over(c1: number[], c2: number[]): number[] {
   ];
 }
 
-export function debugRender(x: number, y: number, buf: number[]): number[] {
+function coverage(x: number): number {
+  return x * sqrt(1 - x * x) + asin(x);
+}
+
+export function render(x: number, y: number, buf: number[]): number[] {
   let color = [0, 0, 0, 0];
 
   for (let i = 0; i < buf.length; ) {
@@ -368,14 +400,17 @@ export function debugRender(x: number, y: number, buf: number[]): number[] {
       );
     }
 
-    const fill_dist = crossings % 2 == 1 ? -dist : dist;
-    const fill_alpha = 0.5 - clamp(fill_dist, -0.5, 0.5);
+    const r = 1;
+
+    const sign = crossings % 2 == 1 ? -1 : 1;
+    const fill_dist = (sign * min(dist, r)) / r;
+    const fill_alpha = (0.5 * PI - coverage(fill_dist)) / PI;
     fill_color[3] *= fill_alpha;
     color = over(fill_color, color);
 
-    const d1 = min(dist - stroke_width / 2, 0.5);
-    const d2 = min(dist + stroke_width / 2, 0.5);
-    const stroke_alpha = d2 - d1;
+    const d1 = clamp(dist - stroke_width / 2, -r, r) / r;
+    const d2 = clamp(dist + stroke_width / 2, -r, r) / r;
+    const stroke_alpha = (coverage(d2) - coverage(d1)) / PI;
     stroke_color[3] *= stroke_alpha;
     color = over(stroke_color, color);
 
