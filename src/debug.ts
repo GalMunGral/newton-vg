@@ -369,16 +369,15 @@ export function debugRender(x: number, y: number, buf: number[]): number[] {
     }
 
     const fill_dist = crossings % 2 == 1 ? -dist : dist;
-    const fill_alpha = clamp(0.5 - 0.5 * fill_dist, 0, 1);
+    const fill_alpha = 0.5 - clamp(fill_dist, -0.5, 0.5);
     fill_color[3] *= fill_alpha;
     color = over(fill_color, color);
 
-    if (stroke_width > 0) {
-      const stroke_dist = dist - stroke_width / 2;
-      const stroke_alpha = clamp(0.5 - 0.5 * stroke_dist, 0, 1);
-      stroke_color[3] *= stroke_alpha;
-      color = over(stroke_color, color);
-    }
+    const d1 = min(dist - stroke_width / 2, 0.5);
+    const d2 = min(dist + stroke_width / 2, 0.5);
+    const stroke_alpha = d2 - d1;
+    stroke_color[3] *= stroke_alpha;
+    color = over(stroke_color, color);
 
     i += 8 * n;
   }

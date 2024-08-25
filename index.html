@@ -55,16 +55,35 @@
     });
   </script>
 </head>
-<body style="padding: 20px 100px 100px">
+<body style="padding: 20px 50px 100px">
   <h1>GPU Path Rendering via Polynomial Root Finding</h1>
   <p>
-    The alpha values of of fills and strokes are determined by
-    <em>signed distances</em>: $$\alpha_{fill}(\gamma, p) :=
-    \frac{1}{2}\left[1-(-1)^{wind(\gamma, p)}\min_{q\in \gamma}{d(p,
-    q)}\right],\quad \alpha_{stroke}(\gamma, p) := \frac{1}{2}\left[1-\min_{q\in
-    \gamma}{d(p, q)}+\frac{w}{2}\right].$$
+    We approximate the pixel coverage of pixel $p$ by the fill and stroke of a
+    curve $\gamma$ using the coverage of a unit-length line segment centered at
+    $p$ and orthogonal to $\gamma$: $$\alpha_{fill}(\gamma, p) := \frac{1}{2} -
+    (-1)^{wind(\gamma, p)}\min\left\{\min_{q\in \gamma}{d(p, q)},
+    \frac{1}{2}\right\}, \quad \alpha_{stroke}(\gamma, p) :=
+    \max\left\{\min_{q\in \gamma}{d(p, q)}+\frac{w}{2},
+    \frac{1}{2}\right\}-\max\left\{\min_{q\in \gamma}{d(p, q)}-\frac{w}{2},
+    \frac{1}{2}\right\}.$$
   </p>
+  <p></p>
   <div style="display: flex; flex-direction: row; gap: 20px">
+    <div>
+      <h4>GPU</h4>
+      <canvas
+        id="main"
+        width="450"
+        height="450"
+        style="background-color: #000066"
+      ></canvas>
+      <div style="text-align: end">
+        <a
+          href="https://raw.githubusercontent.com/GalMunGral/newton-vg/main/src/newton.wgsl"
+          >Source Code (WGSL)</a
+        >
+      </div>
+    </div>
     <div>
       <h4>CPU</h4>
       <canvas
@@ -75,36 +94,26 @@
       ></canvas>
       <div id="progress" style="font-family: monospace">Rendering...</div>
     </div>
-    <div>
-      <h4>GPU</h4>
-      <canvas id="main" width="450" height="450"></canvas>
-      <div style="text-align: end">
-        <a
-          href="https://raw.githubusercontent.com/GalMunGral/newton-vg/main/src/newton.wgsl"
-          >Source Code (WGSL)</a
-        >
-      </div>
-    </div>
   </div>
 
   <h2>Implementation</h2>
   <p>
-    We shoot a horizontal ray to the left from each point $p = [x, y]^\top$. For
-    each cubic segment $\gamma_i(t) = [x_i(t), y_i(t)]^\top$, where $x_i(t) =
-    at^3 + bt^2 + ct + d$ and $y_i(t) = et^3 + ft^2 + gt + h$, we compute (i)
-    the number of intersections with the ray and (ii) the minimum distance
-    between $p$ and $\gamma_i$.
+    At each point $p = [x, y]^\top$, for each cubic segment $\gamma_i(t) =
+    [x_i(t), y_i(t)]^\top$, where $x_i(t) = at^3 + bt^2 + ct + d$ and $y_i(t) =
+    et^3 + ft^2 + gt + h$, we compute (i) the number of intersections between
+    $\gamma_i$ and a ray originating at $p$ and extending to the left, and (ii)
+    the minimum distance between $p$ and $\gamma_i$.
   </p>
   <p>
-    The number of intersections is computed by counting the roots of the
+    The number of intersections is obtained by counting the roots of the
     <em>cubic polynomial</em> $y_i(t) - y$. More specifically, using the Iverson
-    bracket notation, $$\sum_{t \in [0,1)}\left[ at^3+bt^2+ct+d-x < 0 \wedge
+    bracket, $$\sum_{t \in [0,1)}\left[ at^3+bt^2+ct+d-x < 0 \wedge
     et^3+ft^2+gt+h-y = 0 \right]$$ The total number of intersections has the
     same parity as the winding number $$wind(\gamma, p) \equiv \sum_i\sum_{t \in
     [0,1)}\left[x_i(t) - x_p < 0 \wedge y_i(t) - y_p = 0 \right] \pmod 2 $$
   </p>
   <p>
-    The minimum <em>squared distance</em> $$\min_{q\in \gamma_i}{d^2(p, q)} =
+    The minimum <em>squared</em> distance $$\min_{q\in \gamma_i}{d^2(p, q)} =
     \min_{t\in [0,1)} \left[(at^3+bt^2+ct+d-x)^2 + (et^3+ft^2+gt+h-y)^2\right]$$
     is computed by evaluating the function at its critical points, which are the
     roots of its derivative, a <em>quintic polynomial</em>: $$6(a^2 + e^2)t^5 +
@@ -112,12 +121,13 @@
     (4bd + 4fh +2 c^2 + 2g^2) t + 2cd + 2gh.$$
   </p>
   <p>
-    To find the roots of a polynomial numerically, we follow the interval
-    splitting method from <cite>Yuksel (2022)</cite>: First, apply the
-    root-finding algorithm recursively to locate the critical points of the
-    polynomial. Then, split $[0,1)$ into intervals where the polynomial is
-    monotonic, and apply a fixed number of Newton's iterations in each monotonic
-    interval.
+    To find the roots of these polynomials numerically, we follow the interval
+    splitting method from
+    <a href="https://dl.acm.org/doi/10.1145/3532836.3536266">Yuksel (2022)</a>:
+    First, apply the root-finding algorithm recursively to locate the critical
+    points of the polynomial. Then, split $[0,1)$ into intervals where the
+    polynomial is monotonic, and apply a fixed number of Newton's iterations in
+    each interval.
   </p>
   <p>
     As shown in the examples above, the WebGPU implementation (FP32 / single

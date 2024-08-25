@@ -207,14 +207,13 @@ fn fsMain(@builtin(position) pos: vec4f) -> @location(0) vec4f {
     }
 
     let fill_dist = select(dist, -dist, crossings % 2 == 1);
-    let fill_alpha = clamp(0.5 - 0.5 * fill_dist, 0, 1);
+    let fill_alpha = 0.5 - clamp(fill_dist, -0.5, 0.5);
     color = over(fill_color * vec4f(1, 1, 1, fill_alpha), color);
 
-    if stroke_width > 0 {
-      let stroke_dist = dist - stroke_width / 2;
-      let stroke_alpha = clamp(0.5 - 0.5 * stroke_dist, 0, 1);
-      color = over(stroke_color * vec4f(1, 1, 1, stroke_alpha), color);
-    }
+    let d1 = min(dist - stroke_width / 2, 0.5);
+    let d2 = min(dist + stroke_width / 2, 0.5);
+    let stroke_alpha = d2 - d1;
+    color = over(stroke_color * vec4f(1, 1, 1, stroke_alpha), color);
 
     i += 8 * n;
   }
