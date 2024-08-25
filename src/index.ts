@@ -182,7 +182,7 @@ async function debug(sceneBuffer: number[], canvas: HTMLCanvasElement) {
 
   for (const [i, idx] of perm.entries()) {
     await new Promise((resolve) => requestAnimationFrame(resolve));
-    progress.textContent = `Rendering... (y = ${i + 1}/${N})`;
+    progress.textContent = `Rendering... [${i + 1}/${N}]`;
     const x = idx % debugCanvas.width;
     const y = Math.floor(idx / debugCanvas.width);
     const [r, g, b, a] = debugRender(
