@@ -104,30 +104,36 @@
     number of intersections and the minimum distance between $p$ and $\gamma_i$.
   </p>
   <p>
-    The number of intersections is counted by finding the roots of a
-    <em>cubic polynomial</em>: $$\sum_{t \in [0,1)}\left[ at^3+bt^2+ct+d-x < 0
-    \wedge et^3+ft^2+gt+h-y = 0 \right]$$ The total number of intersections has
-    the same parity as the winding number $$wind(\gamma, p) \equiv \sum_i\sum_{t
-    \in [0,1)}\left[x_i(t) - x_p < 0 \wedge y_i(t) - y_p = 0 \right] \pmod 2 $$
+    The number of intersections is counted by finding the roots of the cubic
+    polynomial $et^3+ft^2+gt+h-y$: $$\sum_{t \in [0,1)}\left[ at^3+bt^2+ct+d-x <
+    0 \wedge et^3+ft^2+gt+h-y = 0 \right]$$ The total number of intersections
+    has the same parity as the winding number $$wind(\gamma, p) \equiv
+    \sum_i\sum_{t \in [0,1)}\left[x_i(t) - x_p < 0 \wedge y_i(t) - y_p = 0
+    \right] \pmod 2 $$
   </p>
   <p>
     The minimum squared distance $$\min_{q\in \gamma_i}{d^2(p, q)} = \min_{t\in
     [0,1)} \left[(at^3+bt^2+ct+d-x)^2 + (et^3+ft^2+gt+h-y)^2\right]$$ is
     computed by evaluating the function at its critical points, i.e., the roots
-    of the
-    <em>quintic polynomial</em>: $$6(a^2 + e^2)t^5 + 10 (ab+ ef) t^4 + (8ac +
-    8eg + 4b^2 +4f^2) t^3 + 6(ad + bc + eh + fg) t^2 + (4bd + 4fh +2 c^2 + 2g^2)
-    t + 2cd + 2gh.$$
+    of its derivative, which is a quintic polynomial: $$6(a^2 + e^2)t^5 + 10
+    (ab+ ef) t^4 + (8ac + 8eg + 4b^2 +4f^2) t^3 + 6(ad + bc + eh + fg) t^2 +
+    (4bd + 4fh +2 c^2 + 2g^2) t + 2cd + 2gh.$$
   </p>
   <p>
-    The root-finding algorithm is based on
-    <a href="https://dl.acm.org/doi/10.1145/3532836.3536266"
-      ><em
-        >"A Fast & Robust Solution for Cubic & Higher-Order Polynomials"</em
-      ></a
-    >
-    by Cem Yuksel.
+    To find the roots of a polynomial of degree $D \geq 3$, we follow
+    <cite>Yuksel (2022)</cite>: Apply the same algorithm recursively to find the
+    critical points of the polynomial, split $[0,1)$ into intervals where the
+    polynomial is monotonic using the critical points, then apply Newton's
+    method in each monotonic interval.
   </p>
+  <h2>References</h2>
+  Cem Yuksel. 2022.
+  <em>A Fast & Robust Solution for Cubic & Higher-Order Polynomials.</em> In ACM
+  SIGGRAPH 2022 Talks (SIGGRAPH '22). Association for Computing Machinery, New
+  York, NY, USA, Article 28, 1–2.
+  <a href="https://doi.org/10.1145/3532836.3536266"
+    >https://doi.org/10.1145/3532836.3536266</a
+  >
 
   <script src="index.js"></script>
 </body>
