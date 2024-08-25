@@ -152,33 +152,48 @@ async function main() {
   }
   requestAnimationFrame(render);
 
-  const progress = document.querySelector("span#progress") as HTMLSpanElement;
+  setTimeout(() => debug(sceneBuffer, canvas), 1000);
+}
+
+main();
+
+async function debug(sceneBuffer: number[], canvas: HTMLCanvasElement) {
+  const progress = document.querySelector("#progress")!;
   const debugCanvas = document.querySelector(
     "canvas#debug"
   ) as HTMLCanvasElement;
   const scale = 1;
-  debugCanvas.width = width / scale;
-  debugCanvas.height = height / scale;
-  debugCanvas.style.width = width / devicePixelRatio + "px";
-  debugCanvas.style.height = height / devicePixelRatio + "px";
+  debugCanvas.width = canvas.width / scale;
+  debugCanvas.height = canvas.height / scale;
+  debugCanvas.style.width = canvas.width / devicePixelRatio + "px";
+  debugCanvas.style.height = canvas.height / devicePixelRatio + "px";
   const debugContext = debugCanvas.getContext("2d");
   const imageData = new ImageData(debugCanvas.width, debugCanvas.height);
-  for (let y = 0; y < debugCanvas.height; ++y) {
+
+  const N = debugCanvas.width * debugCanvas.height;
+  const perm = Array(N)
+    .fill(0)
+    .map((_, i) => i);
+
+  for (let i = 0; i < N - 1; ++i) {
+    const j = i + Math.floor(Math.random() * (N - i));
+    [perm[i], perm[j]] = [perm[j], perm[i]];
+  }
+
+  for (const [i, idx] of perm.entries()) {
     await new Promise((resolve) => requestAnimationFrame(resolve));
-    progress.textContent = `Rendering... (y = ${y}/${debugCanvas.height})`;
-    for (let x = 0; x < debugCanvas.width; ++x) {
-      const [r, g, b, a] = debugRender(
-        x * scale + Math.random() * 0.1,
-        y * scale + Math.random() * 0.1,
-        sceneBuffer
-      );
-      imageData.data[(y * debugCanvas.width + x) * 4] = r * 255;
-      imageData.data[(y * debugCanvas.width + x) * 4 + 1] = g * 255;
-      imageData.data[(y * debugCanvas.width + x) * 4 + 2] = b * 255;
-      imageData.data[(y * debugCanvas.width + x) * 4 + 3] = a * 255;
-    }
+    progress.textContent = `Rendering... (y = ${i + 1}/${N})`;
+    const x = idx % debugCanvas.width;
+    const y = Math.floor(idx / debugCanvas.width);
+    const [r, g, b, a] = debugRender(
+      x * scale + Math.random() * 0.1,
+      y * scale + Math.random() * 0.1,
+      sceneBuffer
+    );
+    imageData.data[(y * debugCanvas.width + x) * 4] = r * 255;
+    imageData.data[(y * debugCanvas.width + x) * 4 + 1] = g * 255;
+    imageData.data[(y * debugCanvas.width + x) * 4 + 2] = b * 255;
+    imageData.data[(y * debugCanvas.width + x) * 4 + 3] = a * 255;
     debugContext?.putImageData(imageData, 0, 0);
   }
 }
-
-main();

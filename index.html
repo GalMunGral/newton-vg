@@ -66,35 +66,27 @@
   </p>
   <div style="display: flex; flex-direction: row; gap: 20px">
     <div>
-      <h4>
-        CPU (<a
-          href="https://raw.githubusercontent.com/GalMunGral/newton-vg/main/src/debug.ts"
-          >TypeScript</a
-        >)
-      </h4>
+      <h4>CPU</h4>
       <canvas
         id="debug"
         width="450"
         height="450"
-        style="display: block; background: whitesmoke"
+        style="background: #000066"
       ></canvas>
-      <span id="progress" style="font-family: monospace">Rendering...</span>
+      <div id="progress" style="font-family: monospace">Rendering...</div>
     </div>
     <div>
-      <h4>
-        GPU (<a
+      <h4>GPU</h4>
+      <canvas id="main" width="450" height="450"></canvas>
+      <div style="text-align: end">
+        <a
           href="https://raw.githubusercontent.com/GalMunGral/newton-vg/main/src/newton.wgsl"
-          >WGSL</a
-        >)
-      </h4>
-      <canvas
-        id="main"
-        width="450"
-        height="450"
-        style="display: block"
-      ></canvas>
+          >Source Code (WGSL)</a
+        >
+      </div>
     </div>
   </div>
+
   <h2>Implementation</h2>
   <p>
     We shoot a horizontal ray to the left from each point $p = [x, y]^\top$, and
@@ -126,6 +118,7 @@
     where the polynomial is monotonic, then apply Newton's method in each
     monotonic interval.
   </p>
+
   <h2>References</h2>
   Cem Yuksel. 2022.
   <em>A Fast & Robust Solution for Cubic & Higher-Order Polynomials.</em> In ACM
