@@ -400,7 +400,7 @@ export function render(x: number, y: number, buf: number[]): number[] {
       );
     }
 
-    const r = 1;
+    const r = sqrt(2) / 2;
 
     const sign = crossings % 2 == 1 ? -1 : 1;
     const fill_dist = (sign * min(dist, r)) / r;

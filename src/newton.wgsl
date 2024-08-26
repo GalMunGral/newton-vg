@@ -211,7 +211,7 @@ fn fsMain(@builtin(position) pos: vec4f) -> @location(0) vec4f {
       )));
     }
 
-    const r = 1f;
+    const r = sqrt(2) / 2;
 
     let sign = select(1f, -1f, crossings % 2 == 1);
     let fill_dist = sign * min(dist, r) / r;
