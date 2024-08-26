@@ -190,7 +190,7 @@ async function debug(sceneBuffer: number[], canvas: HTMLCanvasElement) {
     const minutesStr = Math.floor(timeRemaining / 1000 / 60);
     const secondsStr = ((timeRemaining / 1000) % 60)
       .toFixed(2)
-      .padStart(5, "\xa0");
+      .padStart(5, "0");
     const completedStr = String(completed).padStart(String(N).length, "\xa0");
     progress.textContent = `${minutesStr}m${secondsStr}s remaining ${completedStr}/${N} completed`;
   };
