@@ -6,7 +6,7 @@
 
 ### Purpose
 
-Scanline rasterization — the conventional approach to rendering 2D vector graphics — has no clean closed-form analytic formulation. The same problem can be expressed cleanly as a signed distance field: for each pixel, compute the signed distance to the nearest curve, and derive coverage from that distance. This formulation is mathematically precise and admits a direct numerical solution, at the cost of being more expensive to evaluate.
+Scanline rasterization — the conventional approach to rendering 2D vector graphics — obscures the underlying geometry. The same problem admits a clean mathematical formulation: coverage is a function of signed distance, and signed distance is a root-finding problem. This project makes that formulation explicit.
 
 ### Strategy
 
