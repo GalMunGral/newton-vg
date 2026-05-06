@@ -1,4 +1,4 @@
-# Vector Graphics Rasterization
+# GPU Path Rendering
 
 **Live demo:** https://galmungral.github.io/newton-vg/
 
