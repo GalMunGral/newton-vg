@@ -10,7 +10,7 @@ Scanline rasterization — the conventional approach to rendering 2D vector grap
 
 ### Strategy
 
-Each path segment is a cubic Bézier curve. The signed distance from a pixel to a curve is computed by minimizing the squared distance — a degree-6 polynomial in the curve parameter — and finding its roots. Fill is determined by a winding number count; stroke by thresholding the distance. The entire computation runs in a fragment shader on the GPU, with one thread per pixel.
+The clean analytic formulation is implemented as a numerical algorithm and run on real input — the Ghostscript Tiger — to demonstrate that it produces correct results. A CPU reference implementation is shown alongside to illustrate the performance advantage of running the computation on the GPU.
 
 ## Technical Challenges
 
