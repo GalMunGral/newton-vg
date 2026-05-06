@@ -43,6 +43,10 @@ async function main() {
   const sceneBuffer: number[] = [];
   encode(svg, sceneBuffer);
 
+  setTimeout(() => debug(sceneBuffer, canvas), 1000);
+
+  if (!navigator.gpu) return;
+
   const context: GPUCanvasContext = canvas.getContext("webgpu")!;
 
   const adapter = (await navigator.gpu.requestAdapter())!;
@@ -150,8 +154,6 @@ async function main() {
     device.queue.submit([commandEncoder.finish()]);
   }
   requestAnimationFrame(render);
-
-  setTimeout(() => debug(sceneBuffer, canvas), 1000);
 }
 
 main();
