@@ -1,6 +1,6 @@
 # GPU Path Rendering
 
-**Live demo:** https://galmungral.github.io/newton-vg/
+**Live demo:** https://hwenchi.github.io/newton-vg/
 
 ## Rhetorical Design
 
